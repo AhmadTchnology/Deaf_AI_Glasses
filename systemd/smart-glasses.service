@@ -1,0 +1,16 @@
+[Unit]
+Description=AI Smart Glasses Sign Language Visualizer
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/smart_glasses
+ExecStart=/home/pi/smart_glasses/venv/bin/python main.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

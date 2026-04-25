@@ -1,0 +1,59 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Build / Dist
+dist/
+build/
+*.egg-info/
+
+# SQLite databases (generated at runtime)
+gestures/data/gestures.db
+
+# Agent config (dev tooling)
+.agent/
+smart_glasses_project_plan.md
+# Temp files
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# mypy / ruff cache
+.mypy_cache/
+.ruff_cache/
+
+# pytest cache
+.pytest_cache/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml

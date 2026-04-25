@@ -1,0 +1,62 @@
+{
+    "hello": {
+        "frame_dir": "frames/hello",
+        "frame_count": 4,
+        "duration_ms": 180,
+        "category": "greeting"
+    },
+    "thank_you": {
+        "frame_dir": "frames/thank_you",
+        "frame_count": 5,
+        "duration_ms": 160,
+        "category": "common"
+    },
+    "yes": {
+        "frame_dir": "frames/yes",
+        "frame_count": 3,
+        "duration_ms": 200,
+        "category": "common"
+    },
+    "no": {
+        "frame_dir": "frames/no",
+        "frame_count": 3,
+        "duration_ms": 200,
+        "category": "common"
+    },
+    "please": {
+        "frame_dir": "frames/please",
+        "frame_count": 4,
+        "duration_ms": 180,
+        "category": "common"
+    },
+    "sorry": {
+        "frame_dir": "frames/sorry",
+        "frame_count": 4,
+        "duration_ms": 180,
+        "category": "common"
+    },
+    "help": {
+        "frame_dir": "frames/help",
+        "frame_count": 4,
+        "duration_ms": 180,
+        "category": "common"
+    },
+    "love": {
+        "frame_dir": "frames/love",
+        "frame_count": 3,
+        "duration_ms": 200,
+        "category": "emotion"
+    },
+    "happy": {
+        "frame_dir": "frames/happy",
+        "frame_count": 3,
+        "duration_ms": 200,
+        "category": "emotion"
+    },
+    "good": {
+        "frame_dir": "frames/good",
+        "frame_count": 3,
+        "duration_ms": 200,
+        "category": "common"
+    }
+}
