@@ -57,6 +57,7 @@ class Renderer:
         self._menu_buttons: list[dict] = []
         self._back_button: dict | None = None
         self._fs_button: dict | None = None
+        self._toggle_button: dict | None = None
 
         self._deaf_transcript: list[str] = []
         self._is_deaf_speaking: bool = False
@@ -172,11 +173,28 @@ class Renderer:
         
         self._back_button = self._draw_brutalist_back()
 
+        # Draw toggle button at the bottom
+        btn_rect = pygame.Rect(10, self._height - 40, 140, 30)
+        mouse_pos = pygame.mouse.get_pos()
+        is_hover = btn_rect.collidepoint(mouse_pos)
+        
+        btn_bg = WHITE if is_hover else BLACK
+        btn_fg = BLACK if is_hover else WHITE
+        
+        pygame.draw.rect(self._screen, btn_bg, btn_rect)
+        pygame.draw.rect(self._screen, btn_fg, btn_rect, BORDER)
+        
+        btn_text = "USE CAMERA" if not self._is_deaf_speaking else "USE MIC"
+        txt = self._font_small.render(btn_text, True, btn_fg)
+        txt_rect = txt.get_rect(center=btn_rect.center)
+        self._screen.blit(txt, txt_rect)
+        self._toggle_button = {"rect": btn_rect, "action": "toggle"}
+
         # Transcript area - Massive text
         y = 40
         if not self._deaf_transcript:
             waiting = self._font_large.render("AWAITING_INPUT...", True, DIM)
-            self._screen.blit(waiting, (10, self._height // 2))
+            self._screen.blit(waiting, (10, self._height // 2 - 20))
         else:
             # We want to display the latest text massively
             for i, line in enumerate(reversed(self._deaf_transcript[-4:])):
@@ -186,8 +204,8 @@ class Renderer:
                 
                 for wline in reversed(wrapped):
                     rendered = self._font_large.render(wline, True, color)
-                    # Draw from bottom up
-                    y_pos = self._height - 30 - (i * 50)
+                    # Draw from bottom up. Adjust y_pos to stay above the toggle button.
+                    y_pos = self._height - 80 - (i * 50)
                     if y_pos > 30:
                         self._screen.blit(rendered, (10, y_pos))
 
@@ -257,6 +275,11 @@ class Renderer:
 
     def is_back_clicked(self, pos: tuple) -> bool:
         if self._back_button and self._back_button["rect"].collidepoint(pos):
+            return True
+        return False
+
+    def is_deaf_toggle_clicked(self, pos: tuple) -> bool:
+        if self._toggle_button and self._toggle_button["rect"].collidepoint(pos):
             return True
         return False
 

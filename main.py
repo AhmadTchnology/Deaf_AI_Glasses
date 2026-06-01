@@ -89,6 +89,9 @@ def main() -> None:
                 elif renderer.is_back_clicked(pos):
                     mode_mgr.switch_to(AppMode.MENU)
 
+                elif mode_mgr.is_mode(AppMode.DEAF) and renderer.is_deaf_toggle_clicked(pos):
+                    deaf_mode.toggle_speaking_mode()
+
         # ── Render current screen ──
         if mode_mgr.is_mode(AppMode.MENU):
             renderer.draw_menu()
