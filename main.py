@@ -19,6 +19,7 @@ def main() -> None:
 
     # Wire callbacks: mode pipelines update the renderer
     deaf_mode.set_transcript_callback(renderer.update_deaf_transcript)
+    deaf_mode.set_mode_change_callback(renderer.set_deaf_speaking)
     blind_mode.set_detection_callback(renderer.update_blind_detection)
 
     # Mode enter/exit handlers
@@ -69,6 +70,9 @@ def main() -> None:
 
                 elif event.key == pygame.K_2 and mode_mgr.is_mode(AppMode.MENU):
                     mode_mgr.switch_to(AppMode.BLIND)
+
+                elif event.key == pygame.K_SPACE and mode_mgr.is_mode(AppMode.DEAF):
+                    deaf_mode.toggle_speaking_mode()
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = event.pos

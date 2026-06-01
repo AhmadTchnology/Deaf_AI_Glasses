@@ -59,6 +59,7 @@ class Renderer:
         self._fs_button: dict | None = None
 
         self._deaf_transcript: list[str] = []
+        self._is_deaf_speaking: bool = False
         self._blind_description: str = ""
         self._blind_frame: np.ndarray | None = None
 
@@ -150,17 +151,24 @@ class Renderer:
     def update_deaf_transcript(self, lines: list[str]) -> None:
         self._deaf_transcript = lines
 
+    def set_deaf_speaking(self, is_speaking: bool) -> None:
+        self._is_deaf_speaking = is_speaking
+
     def draw_deaf_screen(self) -> None:
         self._screen.fill(BLACK)
 
         # Harsh top bar
-        pygame.draw.rect(self._screen, ACCENT_ORANGE, (0, 0, self._width, 30))
-        title = self._font_large.render("DEAF_MODE", True, BLACK)
+        bar_color = ACCENT_GREEN if self._is_deaf_speaking else ACCENT_ORANGE
+        pygame.draw.rect(self._screen, bar_color, (0, 0, self._width, 30))
+        
+        mode_text = "DEAF_MODE [SIGNING]" if self._is_deaf_speaking else "DEAF_MODE [HEARING]"
+        title = self._font_large.render(mode_text, True, BLACK)
         self._screen.blit(title, (5, 5))
 
         # Pulsing square instead of circle
         pulse = int(abs(pygame.time.get_ticks() % 1000 - 500) / 500 * 255)
-        pygame.draw.rect(self._screen, (pulse, 0, 0), (self._width - 80, 5, 20, 20))
+        pulse_color = (0, pulse, 0) if self._is_deaf_speaking else (pulse, 0, 0)
+        pygame.draw.rect(self._screen, pulse_color, (self._width - 80, 5, 20, 20))
         
         self._back_button = self._draw_brutalist_back()
 
