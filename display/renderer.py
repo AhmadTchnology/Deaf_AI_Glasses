@@ -44,8 +44,7 @@ class Renderer:
         is_rpi = sys.platform == "linux" and os.path.exists("/dev/fb0")
 
         if is_rpi:
-            os.environ.setdefault("SDL_VIDEODRIVER", "fbcon")
-            os.environ.setdefault("SDL_FBDEV", "/dev/fb0")
+            pass  # Let SDL2 automatically choose kmsdrm or wayland
 
         pygame.init()
 
