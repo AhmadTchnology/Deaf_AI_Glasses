@@ -1,20 +1,29 @@
 import threading
+import subprocess
 from utils.logger import logger
 
 
 class TextToSpeech:
-    """Offline text-to-speech using pyttsx3.
+    """Offline text-to-speech using pyttsx3 or CLI fallback.
 
     Runs speech in a background thread so it doesn't block
-    the main rendering loop. Queues are handled internally by pyttsx3.
+    the main rendering loop.
     """
 
     def __init__(self, rate: int = 160):
-        import pyttsx3
-        self._engine = pyttsx3.init()
-        self._engine.setProperty("rate", rate)
+        self._rate = rate
+        self._use_cli = False
+        self._engine = None
         self._lock = threading.Lock()
-        logger.info("TTS initialized, rate={}", rate)
+
+        try:
+            import pyttsx3
+            self._engine = pyttsx3.init()
+            self._engine.setProperty("rate", rate)
+            logger.info("TTS initialized (pyttsx3), rate={}", rate)
+        except Exception as e:
+            logger.warning("pyttsx3 init failed: {}. Falling back to CLI espeak.", e)
+            self._use_cli = True
 
     def speak(self, text: str) -> None:
         """Speak text in a background thread (non-blocking)."""
@@ -24,14 +33,18 @@ class TextToSpeech:
     def _speak_sync(self, text: str) -> None:
         with self._lock:
             try:
-                self._engine.say(text)
-                self._engine.runAndWait()
+                if self._use_cli:
+                    subprocess.run(["espeak", "-s", str(self._rate), text], check=False)
+                else:
+                    self._engine.say(text)
+                    self._engine.runAndWait()
             except Exception as e:
                 logger.error("TTS error: {}", e)
 
     def stop(self) -> None:
-        try:
-            self._engine.stop()
-        except Exception:
-            pass
+        if not self._use_cli and self._engine:
+            try:
+                self._engine.stop()
+            except Exception:
+                pass
         logger.info("TTS stopped")
