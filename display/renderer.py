@@ -44,7 +44,15 @@ class Renderer:
         is_rpi = sys.platform == "linux" and os.path.exists("/dev/fb0")
 
         if is_rpi:
-            pass  # Let SDL2 automatically choose kmsdrm or wayland
+            # Many older RPi guides tell users to export SDL_VIDEODRIVER=fbcon
+            # We must forcefully remove it because SDL2 dropped fbcon support.
+            if os.environ.get("SDL_VIDEODRIVER") == "fbcon":
+                del os.environ["SDL_VIDEODRIVER"]
+            
+            # If running via SSH, Pygame needs to know where the screen is
+            if "DISPLAY" not in os.environ and "WAYLAND_DISPLAY" not in os.environ:
+                os.environ["DISPLAY"] = ":0"
+                os.environ["WAYLAND_DISPLAY"] = "wayland-1"
 
         pygame.init()
 
