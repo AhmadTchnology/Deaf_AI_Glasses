@@ -21,14 +21,14 @@ class TestRenderer:
         renderer._deaf_transcript = []
         renderer._blind_description = ""
         renderer._blind_frame = None
+        renderer._font_title = MagicMock()
         renderer._font_large = MagicMock()
         renderer._font_medium = MagicMock()
         renderer._font_small = MagicMock()
-        renderer._font_tiny = MagicMock()
         renderer._font_icon = MagicMock()
         for f in (
-            renderer._font_large, renderer._font_medium,
-            renderer._font_small, renderer._font_tiny, renderer._font_icon,
+            renderer._font_title, renderer._font_large, renderer._font_medium,
+            renderer._font_small, renderer._font_icon,
         ):
             f.render.return_value = MagicMock(
                 get_width=lambda: 40, get_height=lambda: 16,
@@ -44,7 +44,7 @@ class TestRenderer:
     def test_clear(self, _mock_pg):
         renderer = self._make_renderer()
         renderer.clear()
-        renderer._screen.fill.assert_called_with((0, 0, 0))
+        renderer._screen.fill.assert_called_with((5, 5, 5))
 
     @patch("display.renderer.pygame")
     def test_draw_menu(self, mock_pg):
