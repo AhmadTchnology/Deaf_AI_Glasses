@@ -1,88 +1,101 @@
 import signal
 import sys
-from audio.capture import MicrophoneStream
-from audio.vad import VoiceActivityDetector
-from audio.chunker import AudioChunker
-from speech.factory import create_stt_provider
-from nlp.processor import TextProcessor
-from gestures.database import GestureDatabase
-from gestures.queue_manager import GestureQueueManager
-from display.renderer import GestureRenderer
+import pygame
+from modes.mode_manager import ModeManager, AppMode
+from modes.deaf_mode import DeafMode
+from modes.blind_mode import BlindMode
+from display.renderer import Renderer
 from utils.logger import logger
-from utils.profiler import Profiler
-from config import GESTURE_INDEX_PATH, STT_PROVIDER
+from config import DEFAULT_MODE
 
 
 def main() -> None:
-    logger.info("=== AI Smart Glasses Starting ===")
+    logger.info("=== AI Smart Glasses v2.0 Starting ===")
 
-    # Initialize all components
-    mic = MicrophoneStream()
-    vad = VoiceActivityDetector()
-    chunker = AudioChunker()
-    stt = create_stt_provider()
-    nlp_proc = TextProcessor()
-    db = GestureDatabase()
-    renderer = GestureRenderer()
-    queue_mgr = GestureQueueManager(db, renderer)
-    profiler = Profiler()
+    renderer = Renderer()
+    mode_mgr = ModeManager()
+    deaf_mode = DeafMode()
+    blind_mode = BlindMode()
 
-    # Import gestures on first run
-    if not db.get_all_words():
-        logger.info("Importing gesture database from index...")
-        db.import_from_json(GESTURE_INDEX_PATH)
+    # Wire callbacks: mode pipelines update the renderer
+    deaf_mode.set_transcript_callback(renderer.update_deaf_transcript)
+    blind_mode.set_detection_callback(renderer.update_blind_detection)
 
-    queue_mgr.start()
-    renderer.show_message("Listening...")
+    # Mode enter/exit handlers
+    mode_mgr.on_enter(AppMode.DEAF, deaf_mode.start)
+    mode_mgr.on_exit(AppMode.DEAF, deaf_mode.stop)
+    mode_mgr.on_enter(AppMode.BLIND, blind_mode.start)
+    mode_mgr.on_exit(AppMode.BLIND, blind_mode.stop)
 
-    def shutdown(sig, frame) -> None:
+    def shutdown(sig=None, frame=None) -> None:
         logger.info("Shutting down...")
-        queue_mgr.stop()
+        if mode_mgr.is_mode(AppMode.DEAF):
+            deaf_mode.stop()
+        elif mode_mgr.is_mode(AppMode.BLIND):
+            blind_mode.stop()
         renderer.shutdown()
-        db.close()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # Main pipeline loop
-    logger.info("Entering main pipeline loop")
-    try:
-        for audio_chunk in mic.stream_chunks():
-            # Stage 1: Voice Activity Detection
-            profiler.start("vad")
-            is_speech = vad.is_speech(audio_chunk)
-            profiler.end("vad")
+    # Auto-enter mode if configured
+    if DEFAULT_MODE == "deaf":
+        mode_mgr.switch_to(AppMode.DEAF)
+    elif DEFAULT_MODE == "blind":
+        mode_mgr.switch_to(AppMode.BLIND)
 
-            if not is_speech:
-                continue
+    # ── Main event loop ──
+    logger.info("Entering main event loop")
+    running = True
 
-            logger.debug("Speech detected — sending to STT ({})", STT_PROVIDER)
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-            # Stage 2: Convert to WAV and transcribe
-            profiler.start("stt")
-            wav_data = chunker.to_wav_bytes(audio_chunk)
-            transcript = stt.transcribe(wav_data)
-            profiler.end("stt")
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if mode_mgr.is_mode(AppMode.MENU):
+                        running = False
+                    else:
+                        mode_mgr.switch_to(AppMode.MENU)
 
-            if not transcript:
-                continue
+                elif event.key == pygame.K_F11:
+                    renderer.toggle_fullscreen()
 
-            # Stage 3: NLP processing
-            profiler.start("nlp")
-            keywords = nlp_proc.process(transcript)
-            profiler.end("nlp")
+                elif event.key == pygame.K_1 and mode_mgr.is_mode(AppMode.MENU):
+                    mode_mgr.switch_to(AppMode.DEAF)
 
-            if not keywords:
-                continue
+                elif event.key == pygame.K_2 and mode_mgr.is_mode(AppMode.MENU):
+                    mode_mgr.switch_to(AppMode.BLIND)
 
-            # Stage 4: Queue for display
-            queue_mgr.enqueue(keywords)
-            profiler.log_summary()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pos = event.pos
 
-    except Exception as e:
-        logger.exception("Fatal error in main loop: {}", e)
-        shutdown(None, None)
+                if mode_mgr.is_mode(AppMode.MENU):
+                    action = renderer.get_menu_click(pos)
+                    if action == "deaf":
+                        mode_mgr.switch_to(AppMode.DEAF)
+                    elif action == "blind":
+                        mode_mgr.switch_to(AppMode.BLIND)
+                    elif action == "fullscreen":
+                        renderer.toggle_fullscreen()
+
+                elif renderer.is_back_clicked(pos):
+                    mode_mgr.switch_to(AppMode.MENU)
+
+        # ── Render current screen ──
+        if mode_mgr.is_mode(AppMode.MENU):
+            renderer.draw_menu()
+        elif mode_mgr.is_mode(AppMode.DEAF):
+            renderer.draw_deaf_screen()
+        elif mode_mgr.is_mode(AppMode.BLIND):
+            renderer.draw_blind_screen()
+
+        renderer.tick()
+
+    shutdown()
 
 
 if __name__ == "__main__":

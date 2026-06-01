@@ -32,7 +32,7 @@ class FramebufferDriver(DisplayDriver):
         logger.info("Framebuffer driver initialized: {}x{}", width, height)
 
     def draw_frame(self, frame_data: bytes, width: int, height: int) -> None:
-        pass  # Handled by GestureRenderer directly via pygame
+        pass  # Handled by Renderer directly via pygame
 
     def clear(self) -> None:
         pass

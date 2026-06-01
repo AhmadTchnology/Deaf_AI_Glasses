@@ -8,6 +8,9 @@ numpy>=1.26.0
 google-genai>=1.0.0
 nvidia-riva-client>=2.17.0
 
+# AI / Vision (NVIDIA VLM via OpenAI-compatible API)
+openai>=1.30.0
+
 # NLP
 nltk>=3.9.0
 spacy>=3.7.0
@@ -15,6 +18,12 @@ spacy>=3.7.0
 # Display / Rendering
 pygame>=2.5.0
 Pillow>=10.0.0
+
+# Vision / Camera
+opencv-python-headless>=4.9.0
+
+# TTS (Blind Mode)
+pyttsx3>=2.90
 
 # Hardware (RPi only — comment out on non-RPi systems)
 # RPi.GPIO==0.7.1

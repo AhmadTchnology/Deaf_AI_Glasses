@@ -1,7 +1,7 @@
 import threading
 import queue
 from gestures.database import GestureEntry, GestureDatabase
-from display.renderer import GestureRenderer
+from display.renderer import Renderer
 from utils.logger import logger
 
 
@@ -14,7 +14,7 @@ class GestureQueueManager:
     Consumer thread: renderer pops and plays animations
     """
 
-    def __init__(self, db: GestureDatabase, renderer: GestureRenderer):
+    def __init__(self, db: GestureDatabase, renderer: Renderer):
         self._db = db
         self._renderer = renderer
         self._queue: queue.Queue[list[str]] = queue.Queue(maxsize=10)
