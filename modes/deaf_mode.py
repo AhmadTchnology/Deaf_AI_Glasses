@@ -5,7 +5,8 @@ from audio.chunker import AudioChunker
 from speech.factory import create_stt_provider
 from vision.camera import CameraStream
 from vision.tts import TextToSpeech
-from vision.sign_translator import create_sign_provider
+from vision.mediapipe_tracker import MediaPipeTracker
+from vision.classifier import SignClassifier
 from utils.logger import logger
 from utils.profiler import Profiler
 from config import STT_PROVIDER
@@ -31,7 +32,8 @@ class DeafMode:
         
         # Speaking mode components
         self._camera = CameraStream()
-        self._sign_translator = create_sign_provider()
+        self._classifier = SignClassifier()
+        self._tracker = None # Initialized on demand
         self._tts = TextToSpeech()
         self._is_speaking_mode = False
         self._camera_thread: threading.Thread | None = None
@@ -71,6 +73,7 @@ class DeafMode:
         if is_speaking:
             logger.info("DeafMode: Switching to Speaking Mode (Camera)")
             self._camera.open()
+            self._tracker = MediaPipeTracker(sequence_length=30)
             self._camera_thread = threading.Thread(target=self._camera_loop, daemon=True)
             self._camera_thread.start()
         else:
@@ -79,6 +82,9 @@ class DeafMode:
                 self._camera_thread.join(timeout=3.0)
                 self._camera_thread = None
             self._camera.close()
+            if self._tracker:
+                self._tracker.close()
+                self._tracker = None
 
         if self._on_mode_change:
             try:
@@ -110,6 +116,9 @@ class DeafMode:
                     self._camera_thread.join(timeout=3.0)
                     self._camera_thread = None
                 self._camera.close()
+                if self._tracker:
+                    self._tracker.close()
+                    self._tracker = None
                 
         self._tts.stop()
         logger.info("DeafMode stopped")
@@ -151,26 +160,29 @@ class DeafMode:
             self._mic.close()
 
     def _camera_loop(self) -> None:
-        last_process_time = 0.0
+        last_predict_time = 0.0
         while self._running and self._is_speaking_mode:
             try:
                 frame = self._camera.capture_frame()
                 if frame is None:
-                    time.sleep(0.1)
+                    time.sleep(0.01)
                     continue
 
+                processed_frame, landmarks = self._tracker.process_frame(frame)
+                sequence = self._tracker.get_sequence()
+                
                 now = time.time()
-                if now - last_process_time >= 5.0:
-                    last_process_time = now
-                    # Encode the fresh frame
-                    success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-                    if success:
-                        jpeg_bytes = buffer.tobytes()
-                        text = self._sign_translator.translate(jpeg_bytes)
-                        if text and text.upper() != "NONE":
-                            logger.info("Sign detected: '{}'", text)
-                            self._tts.speak(text)
-                            self._add_transcript(f"[Sign] {text}")
+                # Predict every 1.0 second if we have a full sequence buffer
+                if sequence is not None and now - last_predict_time >= 1.0:
+                    last_predict_time = now
+                    text, confidence = self._classifier.predict(sequence, threshold=0.8)
+                    
+                    if text:
+                        logger.info("Sign detected: '{}' (conf: {:.2f})", text, confidence)
+                        self._tts.speak(text)
+                        self._add_transcript(f"[Sign] {text}")
+                        self._tracker.clear_buffer() # Clear to prevent back-to-back duplicate detections
+                        
             except Exception as e:
                 logger.error("DeafMode camera error: {}", e)
                 time.sleep(0.1)

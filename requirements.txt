@@ -7,7 +7,8 @@ numpy>=1.26.0
 
 # AI / Speech
 google-genai>=1.0.0
-nvidia-riva-client>=2.17.0
+nvidia-riva-client>=2.16.0
+protobuf<5
 
 # AI / Vision (NVIDIA VLM via OpenAI-compatible API)
 openai>=1.30.0
@@ -22,6 +23,8 @@ Pillow>=10.0.0
 
 # Vision / Camera
 opencv-python-headless>=4.9.0
+mediapipe>=0.10.0
+tensorflow>=2.15.0
 
 # TTS (Blind Mode)
 pyttsx3>=2.90
