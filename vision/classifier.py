@@ -10,10 +10,14 @@ class SignClassifier:
     """
     
     def __init__(self, model_path: str = "models/asl_lstm.h5", actions: List[str] = None):
-        if actions is None:
-            self.actions = ["hello", "thank_you", "please", "help"]
-        else:
+        labels_path = os.path.join(os.path.dirname(model_path), "asl_labels.npy")
+        if actions is not None:
             self.actions = actions
+        elif os.path.exists(labels_path):
+            self.actions = list(np.load(labels_path))
+            logger.info("Loaded custom ASL labels: {}", self.actions)
+        else:
+            self.actions = ["hello", "thank_you", "please", "help"]
             
         self.model = None
         
@@ -22,6 +26,40 @@ class SignClassifier:
             return
             
         try:
+            # Python 3.12 removed the 'imp' module, which older TensorFlow/h5py versions rely on.
+            # We inject a mock 'imp' module into sys.modules to prevent the "No module named 'imp'" error.
+            import sys
+            if sys.version_info >= (3, 12) and 'imp' not in sys.modules:
+                import types
+                import importlib
+                import importlib.util
+                
+                class MockImp(types.ModuleType):
+                    C_EXTENSION = 3
+                    PY_SOURCE = 1
+                    PY_COMPILED = 2
+                    PKG_DIRECTORY = 5
+                    C_BUILTIN = 6
+                    PY_FROZEN = 7
+                    
+                    @staticmethod
+                    def find_module(name, path=None):
+                        spec = importlib.util.find_spec(name, path)
+                        if spec is None:
+                            raise ImportError(f"No module named {name}")
+                        return None, spec.origin, ('', '', 1)
+                        
+                    @staticmethod
+                    def load_module(name, file, filename, details):
+                        return importlib.import_module(name)
+                        
+                    @staticmethod
+                    def reload(module):
+                        return importlib.reload(module)
+                        
+                sys.modules['imp'] = MockImp('imp')
+                logger.debug("Injected mock 'imp' module for Python 3.12+ compatibility")
+
             # We import tensorflow here to avoid slowing down startup if this module isn't used
             import tensorflow as tf
             self.model = tf.keras.models.load_model(model_path)
